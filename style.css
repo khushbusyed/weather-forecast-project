@@ -1,0 +1,51 @@
+/* Custom Styles to make the app visually appealing and ensure full coverage */
+:root {
+    --primary: #1d4ed8; /* Blue 700 */
+    --secondary: #1e3a8a; /* Blue 800 */
+    --background-default: #f3f4f6; /* Gray 100 */
+    --background-rain: #374151; /* Gray 700 for rainy condition */
+    --text-color: #f9fafb; /* Gray 50 */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background-default);
+    transition: background-color 0.5s ease;
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+/* Styling for the current weather card */
+#current-weather-card {
+    background: var(--primary);
+    color: var(--text-color);
+    min-height: 200px;
+}
+
+/* Styling for forecast cards */
+.forecast-card {
+    background: var(--secondary);
+    color: var(--text-color);
+    min-height: 180px;
+}
+
+/* Ensure icon colors are visible */
+.weather-icon {
+    stroke: var(--text-color);
+}
+
+/* Style the custom modal for errors */
+#error-modal {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Responsive styling for the main grid */
+@media (min-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr 3fr;
+    }
+}
