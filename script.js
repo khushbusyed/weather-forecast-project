@@ -42,6 +42,8 @@ const closeErrorBox = document.getElementById("modal-close-button");
 // Unit toggle
 const unitToggle = document.getElementById("unit-toggle");
 
+//Note: Additional comments for clarity and maintainability.
+
 // --- State Management ---
 let currentUnit = "metric"; // 'metric' => °C, 'imperial' => °F
 let currentTempC = null;
