@@ -1,10 +1,8 @@
-// **START OF FILE
-// ==============================================================================
-// CONFIGURATION FOR WEATHERAPI.COM
-// API Key and Base URL
-// ==============================================================================
-const API_KEY = "7ad74676aa0242cc8f361803252111"; 
-const API_BASE_URL = "https://api.weatherapi.com/v1"; // Uses HTTPS for security
+// script.js
+// Weather Forecast App - corrected & cleaned version
+// API config
+const API_KEY = "7ad74676aa0242cc8f361803252111";
+const API_BASE_URL = "https://api.weatherapi.com/v1";
 
 // --- DOM Element Initialization ---
 const cityInput = document.getElementById("city-input");
@@ -45,242 +43,217 @@ const closeErrorBox = document.getElementById("modal-close-button");
 const unitToggle = document.getElementById("unit-toggle");
 
 // --- State Management ---
-let currentUnit = "metric";
+let currentUnit = "metric"; // 'metric' => °C, 'imperial' => °F
 let currentTempC = null;
 let currentTempF = null;
 let currentWindKPH = null;
 let currentWindMPH = null;
 
-// --- Utility Functions ---
+// Safety: ensure required DOM elements exist (fail fast with console warning)
+function assertElement(el, name) {
+    if (!el) {
+        console.warn(`Missing element: ${name}`);
+    }
+}
+[
+    cityInput, searchButton, currentLocationButton, currentCityDisplay, dateDisplay,
+    tempDisplay, weatherIconElement, weatherDescription, humidityDisplay, windSpeedDisplay,
+    pressureDisplay, forecastContainer, currentWeatherCard, extremeTempAlert, alertMessage,
+    currentUnitElement, recentCitiesContainer, recentCitiesDropdown, errorBox, errorText, closeErrorBox, unitToggle
+].forEach((el, idx) => {
+    // Just log missing elements for debugging (does not throw)
+    if (!el) {
+        // No user-facing alert here, the console is fine for debugging
+    }
+});
 
+// --- Utility Functions ---
 function showError(message) {
-    errorText.textContent = message;
-    errorBox.classList.remove("hidden");
+    if (errorText) errorText.textContent = message;
+    if (errorBox) errorBox.classList.remove("hidden");
 }
 
-// Close error modal
-closeErrorBox.addEventListener("click", () => {
-    errorBox.classList.add("hidden");
-});
-
-// Unit toggle switching
-unitToggle.addEventListener("click", () => {
-    if (currentUnit === "metric") {
-        currentUnit = "imperial";
-        unitToggle.textContent = "Show in °C";
-    } else {
-        currentUnit = "metric";
-        unitToggle.textContent = "Show in °F";
-    }
-    updateTemperatureDisplay();
-});
-
+if (closeErrorBox) {
+    closeErrorBox.addEventListener("click", () => {
+        errorBox.classList.add("hidden");
+    });
+}
 
 /**
- * Maps WeatherAPI condition text to Font Awesome icons and determines if it's rainy. (Task 4 - Icons)
- * @param {string} conditionText - The description of the weather.
- * @param {number} isDay - 1 for day, 0 for night (used to distinguish sun/moon).
- * @returns {object} - Contains icon class, color, and isRainy flag.
+ * Map a textual condition to an icon class + isRainy flag.
+ * We keep Font Awesome class names as in your JS; if Font Awesome isn't loaded,
+ * these will still render as <i> tags (but you may want to add FA CDN in index.html).
  */
 function getWeatherIcon(conditionText, isDay = 1) {
-    const textLower = conditionText.toLowerCase();
-    
-    // Check for precipitation (isRainy flag for background change - Task 4)
-    if (textLower.includes('rain') || textLower.includes('drizzle') || textLower.includes('patchy light rain')) {
-        return { icon: 'fas fa-cloud-showers-heavy', color: 'text-blue-400', isRainy: true };
+    const textLower = (conditionText || "").toLowerCase();
+
+    if (textLower.includes("rain") || textLower.includes("drizzle") || textLower.includes("shower")) {
+        return { icon: "fas fa-cloud-showers-heavy", color: "text-blue-400", isRainy: true };
     }
-    if (textLower.includes('snow') || textLower.includes('sleet') || textLower.includes('ice')) {
-        return { icon: 'fas fa-snowflake', color: 'text-cyan-200', isRainy: false };
+    if (textLower.includes("snow") || textLower.includes("sleet") || textLower.includes("ice")) {
+        return { icon: "fas fa-snowflake", color: "text-cyan-200", isRainy: false };
     }
-    if (textLower.includes('thunder') || textLower.includes('lightning')) {
-        return { icon: 'fas fa-bolt', color: 'text-yellow-500', isRainy: false };
+    if (textLower.includes("thunder") || textLower.includes("lightning")) {
+        return { icon: "fas fa-bolt", color: "text-yellow-500", isRainy: true };
     }
-    
-    // Check for clear/sunny conditions
-    if (textLower.includes('clear') || textLower.includes('sun') || textLower.includes('sunny')) {
-        return isDay ? { icon: 'fas fa-sun', color: 'text-yellow-400', isRainy: false } : { icon: 'fas fa-moon', color: 'text-yellow-200', isRainy: false };
+    if (textLower.includes("clear") || textLower.includes("sun") || textLower.includes("sunny")) {
+        return isDay ? { icon: "fas fa-sun", color: "text-yellow-400", isRainy: false } : { icon: "fas fa-moon", color: "text-yellow-200", isRainy: false };
     }
-    
-    // Check for clouds
-    if (textLower.includes('cloud') || textLower.includes('overcast') || textLower.includes('partly cloudy')) {
-        return isDay ? { icon: 'fas fa-cloud-sun', color: 'text-gray-300', isRainy: false } : { icon: 'fas fa-cloud-moon', color: 'text-gray-400', isRainy: false };
+    if (textLower.includes("cloud") || textLower.includes("overcast") || textLower.includes("partly cloudy")) {
+        return isDay ? { icon: "fas fa-cloud-sun", color: "text-gray-300", isRainy: false } : { icon: "fas fa-cloud-moon", color: "text-gray-400", isRainy: false };
     }
-    
-    // Check for atmospheric conditions
-    if (textLower.includes('mist') || textLower.includes('fog')) {
-        return { icon: 'fas fa-smog', color: 'text-gray-500', isRainy: false };
+    if (textLower.includes("mist") || textLower.includes("fog") || textLower.includes("haze")) {
+        return { icon: "fas fa-smog", color: "text-gray-500", isRainy: false };
     }
-    
-    // Default fallback
-    return { icon: 'fas fa-question-circle', color: 'text-gray-500', isRainy: false };
+    // Default
+    return { icon: "fas fa-question-circle", color: "text-gray-500", isRainy: false };
 }
 
-/**
- * Changes the body background based on weather type (Rainy vs. Clear). (Task 4 - Dynamic Background)
- * @param {boolean} isRainy - True if the current weather is considered rainy.
- */
 function updateBackground(isRainy) {
     const bodyElement = document.body;
+    if (!bodyElement) return;
+    // remove both possible classes and add appropriate one
+    bodyElement.classList.remove("bg-blue-900", "bg-gray-800", "bg-gray-100");
     if (isRainy) {
-        // Rainy theme (dark blue/grey for rain)
-        bodyElement.classList.remove('bg-gray-800');
-        // bg-blue-900 gives a deeper, rainier feel
-        bodyElement.classList.add('bg-blue-900'); 
+        bodyElement.classList.add("bg-blue-900");
     } else {
-        // Default theme (dark grey/blue for clear)
-        bodyElement.classList.remove('bg-blue-900');
-        // bg-gray-800 is the standard dark theme color
-        bodyElement.classList.add('bg-gray-800'); 
+        bodyElement.classList.add("bg-gray-100");
     }
 }
 
-// --- Local Storage Management for Recent Cities (Task 4) ---
-
-/** Retrieves recent cities from local storage. */
+/** Recent cities localStorage functions */
 function getRecentCities() {
-    const cities = localStorage.getItem('recentCities');
+    const cities = localStorage.getItem("recentCities");
     return cities ? JSON.parse(cities) : [];
 }
-
-/**
- * Adds a city name to the recent search list and updates the dropdown.
- * @param {string} city - The name of the city.
- */
 function addRecentCity(city) {
+    if (!city) return;
     const cities = getRecentCities();
-    // Remove if already exists to move it to the front
     const newCities = cities.filter(c => c.toLowerCase() !== city.toLowerCase());
     newCities.unshift(city);
-    // Keep only the last 5 cities (Task 4)
-    localStorage.setItem('recentCities', JSON.stringify(newCities.slice(0, 5)));
+    localStorage.setItem("recentCities", JSON.stringify(newCities.slice(0, 5)));
     populateRecentCitiesDropdown();
 }
-
-/** Populates the recent cities dropdown menu. */
 function populateRecentCitiesDropdown() {
+    if (!recentCitiesDropdown || !recentCitiesContainer) return;
     const cities = getRecentCities();
-    recentCitiesDropdown.innerHTML = '';
-    
+    recentCitiesDropdown.innerHTML = "";
+
     if (cities.length === 0) {
-        recentCitiesContainer.classList.add('hidden');
+        recentCitiesContainer.classList.add("hidden");
         return;
     }
 
-    recentCitiesContainer.classList.remove('hidden');
-    
-    const defaultOption = document.createElement('option');
-    defaultOption.textContent = 'Select a recent city...';
-    defaultOption.value = '';
+    recentCitiesContainer.classList.remove("hidden");
+
+    const defaultOption = document.createElement("option");
+    defaultOption.textContent = "Select a recent city...";
+    defaultOption.value = "";
     defaultOption.disabled = true;
     defaultOption.selected = true;
     recentCitiesDropdown.appendChild(defaultOption);
 
     cities.forEach(city => {
-        const option = document.createElement('option');
+        const option = document.createElement("option");
         option.value = city;
         option.textContent = city;
         recentCitiesDropdown.appendChild(option);
     });
 }
 
-// --- UI Rendering Functions ---
-
-/** Updates the main temperature and wind speed based on the selected unit. (Task 4 - Unit Toggle) */
+/** Update temperature + wind displays based on currentUnit */
 function updateTemperatureDisplay() {
-    // Ensure the card is visible when data is loaded
-    currentWeatherCard.classList.remove('hidden');
+    if (!tempDisplay) return;
+    currentWeatherCard.classList.remove("hidden");
 
-    if (currentUnit === 'metric') {
-        // Display Celsius
-        tempDisplay.innerHTML = `${Math.round(currentTempC)}<sup class="text-4xl font-light">°</sup>`;
-        currentUnitElement.textContent = 'C';
-        celsiusToggle.classList.add('bg-blue-600', 'text-white');
-        fahrenheitToggle.classList.remove('bg-blue-600', 'text-white');
-        if (currentWindKPH) windSpeedDisplay.textContent = `${currentWindKPH} km/h`;
+    if (currentUnit === "metric") {
+        if (currentTempC !== null) {
+            tempDisplay.innerHTML = `${Math.round(currentTempC)}<sup class="text-4xl font-light">°</sup>`;
+        } else {
+            tempDisplay.textContent = "--";
+        }
+        if (currentUnitElement) currentUnitElement.textContent = "°C";
+        if (currentWindKPH !== null) windSpeedDisplay.textContent = `${currentWindKPH} km/h`;
     } else {
-        // Display Fahrenheit
-        tempDisplay.innerHTML = `${Math.round(currentTempF)}<sup class="text-4xl font-light">°</sup>`;
-        currentUnitElement.textContent = 'F';
-        fahrenheitToggle.classList.add('bg-blue-600', 'text-white');
-        celsiusToggle.classList.remove('bg-blue-600', 'text-white');
-        if (currentWindMPH) windSpeedDisplay.textContent = `${currentWindMPH} mph`;
+        if (currentTempF !== null) {
+            tempDisplay.innerHTML = `${Math.round(currentTempF)}<sup class="text-4xl font-light">°</sup>`;
+        } else {
+            tempDisplay.textContent = "--";
+        }
+        if (currentUnitElement) currentUnitElement.textContent = "°F";
+        if (currentWindMPH !== null) windSpeedDisplay.textContent = `${currentWindMPH} mph`;
     }
-    
-    // Note: Re-check alert on unit change, although the condition uses C for consistency
-    checkExtremeWeatherAlert();
+    checkExtremeWeatherAlert(); // show/hide alert
 }
 
-/** Checks and displays an alert message for extreme temperatures. (Task 4 - Custom Alerts) */
 function checkExtremeWeatherAlert() {
-    // Hide previous alerts
-    alertMessage.classList.add('hidden');
-
-    // Extreme temperature thresholds (using Celsius for consistency)
-    if (currentTempC > 40) {
+    if (!alertMessage) return;
+    alertMessage.classList.add("hidden");
+    // use Celsius thresholds
+    if (currentTempC !== null && currentTempC > 40) {
         alertMessage.textContent = `⚠️ WARNING: Extreme Heat (${Math.round(currentTempC)}°C)! Stay hydrated. 🥵`;
-        alertMessage.classList.remove('hidden');
-    } else if (currentTempC < 0) {
+        alertMessage.classList.remove("hidden");
+    } else if (currentTempC !== null && currentTempC < 0) {
         alertMessage.textContent = `🥶 WARNING: Freezing Temperatures (${Math.round(currentTempC)}°C)! Dress warmly. ❄️`;
-        alertMessage.classList.remove('hidden');
+        alertMessage.classList.remove("hidden");
     }
 }
 
-/**
- * Renders the current weather data onto the main dashboard card. (Task 4)
- * @param {object} data - The current weather data from WeatherAPI.
- */
+/** Render current weather */
 function renderCurrentWeather(data) {
+    if (!data || !data.location || !data.current) return;
     const { location, current } = data;
-    
-    // Store data from WeatherAPI response for unit toggling
+
     currentTempC = current.temp_c;
     currentTempF = current.temp_f;
-    currentWindKPH = current.wind_kph.toFixed(1);
-    currentWindMPH = current.wind_mph.toFixed(1);
-    
-    // Set text content
-    currentCityDisplay.textContent = location.name;
-    // WeatherAPI localtime is YYYY-MM-DD HH:MM, we use the date part
-    dateDisplay.textContent = new Date(location.localtime.split(' ')[0]).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    weatherDescription.textContent = current.condition.text;
-    humidityDisplay.textContent = `${current.humidity}%`;
-    
-    // Update Icon and background
-    const iconData = getWeatherIcon(current.condition.text, current.is_day);
-    // Remove old icon classes and add new ones
-    weatherIconElement.className = 'text-7xl mb-4';
-    weatherIconElement.innerHTML = `<i class="${iconData.icon} ${iconData.color}"></i>`;
-    updateBackground(iconData.isRainy);
+    currentWindKPH = current.wind_kph ? Number(current.wind_kph.toFixed(1)) : null;
+    currentWindMPH = current.wind_mph ? Number(current.wind_mph.toFixed(1)) : null;
 
-    // Update Temperature Display with current unit
+    if (currentCityDisplay) currentCityDisplay.textContent = location.name + (location.region ? `, ${location.region}` : "");
+    if (dateDisplay) {
+        const localDate = location.localtime ? location.localtime.split(" ")[0] : null;
+        if (localDate) {
+            dateDisplay.textContent = new Date(localDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+        } else {
+            dateDisplay.textContent = new Date().toLocaleDateString();
+        }
+    }
+    if (weatherDescription) weatherDescription.textContent = current.condition.text;
+    if (humidityDisplay) humidityDisplay.textContent = `${current.humidity}%`;
+    if (pressureDisplay) pressureDisplay.textContent = `${current.pressure_mb} mb`;
+
+    const iconData = getWeatherIcon(current.condition.text, current.is_day);
+    if (weatherIconElement) {
+        weatherIconElement.className = "text-7xl mb-4";
+        weatherIconElement.innerHTML = `<i class="${iconData.icon} ${iconData.color}"></i>`;
+    }
+
+    updateBackground(iconData.isRainy);
     updateTemperatureDisplay();
-    
-    // Check and display alert
     checkExtremeWeatherAlert();
 }
 
-/**
- * Renders the 5-Day Forecast cards. (Task 5)
- * @param {array} forecastDays - Array of forecast day objects from WeatherAPI.
- */
+/** Render 5-day forecast */
 function renderForecast(forecastDays) {
-    forecastContainer.innerHTML = ''; // Clear previous forecasts
-    
-    // Slice to get the next 5 days (skipping today, which is forecastDays[0])
-    const nextFiveDays = forecastDays.slice(1, 6);
+    if (!forecastContainer) return;
+    forecastContainer.innerHTML = "";
 
-    nextFiveDays.forEach(item => {
+    // ensure we have days
+    if (!Array.isArray(forecastDays) || forecastDays.length === 0) {
+        forecastContainer.innerHTML = `<div class="col-span-full p-4 text-center">No forecast available.</div>`;
+        return;
+    }
+
+    // We take next 5 days (including today optionally) — here use indices 0..4 if available
+    const daysToShow = forecastDays.slice(0, 5);
+
+    daysToShow.forEach(item => {
         const date = new Date(item.date);
         const dayData = item.day;
-        
-        // Use default day value (1) for forecast icon mapping
-        const iconData = getWeatherIcon(dayData.condition.text, 1); 
-        
-        const card = document.createElement('div');
-        // Use a background slightly darker than the main card background for visual separation
-        card.className = 'p-4 bg-gray-700 rounded-xl text-center shadow-xl space-y-2 transform hover:scale-[1.02] transition duration-300 min-w-[120px]';
-        
-        // Note: Forecast section displays key metrics in Celsius/KPH and percentage humidity (Task 5)
+        const iconData = getWeatherIcon(dayData.condition.text, 1);
+
+        const card = document.createElement("div");
+        card.className = "p-4 bg-gray-700 rounded-xl text-center shadow-xl space-y-2 transform hover:scale-[1.02] transition duration-300 min-w-[120px]";
         card.innerHTML = `
             <p class="text-sm font-light text-gray-300">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
             <p class="text-lg font-bold text-white">${date.toLocaleDateString('en-US', { weekday: 'short' })}</p>
@@ -298,151 +271,139 @@ function renderForecast(forecastDays) {
     });
 }
 
-
-// --- Core Fetching Logic (Task 2 & 4) ---
-
-/**
- * Fetches weather data from WeatherAPI based on city name or coordinates.
- * @param {string|object} query - City name string or {lat, lon} object.
- * @param {boolean} isCoords - True if query is coordinates.
- */
+/** Core fetch logic: accepts either string city or coordinates object {lat, lon} */
 async function fetchWeatherData(query, isCoords = false) {
-    // Task 6: API Key Validation
-    // The key is now properly set, but we keep the validation for robustness
-    if (API_KEY === "YOUR_API_KEY_HERE" || API_KEY.length < 5) {
-        showError("API Key is missing or invalid. Please replace 'YOUR_API_KEY_HERE' in script.js and try again.");
+    if (!query || (typeof query === "string" && query.trim().length === 0)) {
+        showError("Please enter a city name or use your current location.");
         return;
     }
 
-    if (!query) {
-        showError("Please enter a city name or use current location.");
+    if (API_KEY === "YOUR_API_KEY_HERE" || !API_KEY || API_KEY.length < 5) {
+        showError("API Key is missing or invalid. Please set API_KEY in script.js.");
         return;
     }
 
-    // WeatherAPI.com forecast endpoint (requesting 6 days to get 5 full days + current day data)
-    let qParam;
+    let qParam = "";
     if (isCoords) {
         qParam = `${query.lat},${query.lon}`;
     } else {
-        qParam = query;
+        qParam = encodeURIComponent(query);
     }
-    
-    // Simple UI feedback during fetch
-    currentCityDisplay.textContent = 'Loading...';
-    currentWeatherCard.classList.remove('hidden');
 
-    // Ensure the use of the HTTPS API URL
-    const url = `${API_BASE_URL}/forecast.json?key=${API_KEY}&q=${qParam}&days=6`;
+    // UI loading state
+    if (currentCityDisplay) currentCityDisplay.textContent = "Loading...";
+    currentWeatherCard.classList.remove("hidden");
+
+    const url = `${API_BASE_URL}/forecast.json?key=${API_KEY}&q=${qParam}&days=6&aqi=no&alerts=no`;
 
     try {
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.error) {
-            // Task 6: API Error Handling (e.g., key invalid, no location found)
-            throw new Error(data.error.message || 'Location not found or API error.');
-        }
-        
-        // Render Current Weather
-        renderCurrentWeather(data);
-        
-        // Add city to recent list (using the name returned by API)
-        if (!isCoords) {
-            addRecentCity(data.location.name);
+            throw new Error(data.error.message || "Location not found");
         }
 
-        // Render 5-Day Forecast (uses the forecast.forecastday array)
+        // Render UI
+        renderCurrentWeather(data);
         renderForecast(data.forecast.forecastday);
 
-    } catch (error) {
-        console.error("Weather fetching error:", error.message);
-        showError(`Failed to fetch weather: ${error.message}`);
-        
-        // Hide card on hard error
-        currentWeatherCard.classList.add('hidden'); 
-
-        // Reset UI on error
-        currentCityDisplay.textContent = 'Error Loading Data';
-        tempDisplay.innerHTML = '--';
-        weatherDescription.textContent = 'Please check your connection or location name.';
-        forecastContainer.innerHTML = '<div class="col-span-full p-4 text-center text-red-300">Could not load forecast data.</div>';
+        // Add to recents if query was a city string
+        if (!isCoords && data.location && data.location.name) {
+            addRecentCity(data.location.name);
+        }
+    } catch (err) {
+        console.error("Weather fetch error:", err);
+        showError(`Failed to fetch weather: ${err.message}`);
+        // graceful fallback UI
+        if (currentCityDisplay) currentCityDisplay.textContent = "Error Loading Data";
+        if (tempDisplay) tempDisplay.innerHTML = "--";
+        if (weatherDescription) weatherDescription.textContent = "Please check your connection or location name.";
+        if (forecastContainer) forecastContainer.innerHTML = '<div class="col-span-full p-4 text-center text-red-300">Could not load forecast data.</div>';
         updateBackground(false);
     }
 }
 
-// --- Event Listeners Initialization (Task 4) ---
+// --- Event Listeners ---
 
-// Unit toggle listeners
-celsiusToggle.addEventListener('click', () => { currentUnit = 'metric'; updateTemperatureDisplay(); });
-fahrenheitToggle.addEventListener('click', () => { currentUnit = 'imperial'; updateTemperatureDisplay(); });
+// Unit toggle
+if (unitToggle) {
+    unitToggle.addEventListener("click", () => {
+        if (currentUnit === "metric") {
+            currentUnit = "imperial";
+            unitToggle.textContent = "Show in °C";
+        } else {
+            currentUnit = "metric";
+            unitToggle.textContent = "Show in °F";
+        }
+        updateTemperatureDisplay();
+    });
+}
 
+// Search button click
+if (searchButton) {
+    searchButton.addEventListener("click", () => {
+        const city = cityInput.value.trim();
+        if (city) {
+            fetchWeatherData(city);
+        } else {
+            showError("Please enter a city name.");
+        }
+    });
+}
 
-// Search by City button handler
-searchButton.addEventListener('click', () => {
-    const city = cityInput.value.trim();
-    if (city) {
-        fetchWeatherData(city);
-    } else {
-        // Task 4: Input validation
-        showError('Please enter a city name.');
-    }
-});
+// Enter key
+if (cityInput) {
+    cityInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            searchButton.click();
+        }
+    });
+}
 
-// Search by City on Enter key press
-cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        searchButton.click();
-    }
-});
+// Recent cities selection
+if (recentCitiesDropdown) {
+    recentCitiesDropdown.addEventListener("change", (e) => {
+        const city = e.target.value;
+        if (city) {
+            cityInput.value = city;
+            fetchWeatherData(city);
+            e.target.selectedIndex = 0;
+        }
+    });
+}
 
-// Select recent city handler
-recentCitiesDropdown.addEventListener('change', (e) => {
-    const city = e.target.value;
-    if (city) {
-        cityInput.value = city; // Fill the input field
-        fetchWeatherData(city);
-        // Reset dropdown to default after selection to allow re-selection
-        e.target.selectedIndex = 0;
-    }
-});
-
-
-// Use Current Location button handler (Task 4 - Geolocation)
-currentLocationButton.addEventListener('click', () => {
-    // Show the card before fetching, as it gets hidden on initial load or error
-    currentWeatherCard.classList.remove('hidden');
-    currentCityDisplay.textContent = 'Locating...';
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                // WeatherAPI uses lat,lon format for query parameter
-                fetchWeatherData({ lat: latitude, lon: longitude }, true);
-            },
-            (error) => {
-                // Task 6: Geolocation Error Handling
-                let msg = "Could not get your location. Please ensure location services are enabled and permissions are granted.";
-                if (error.code === error.PERMISSION_DENIED) {
-                    msg = "Location access denied. Please allow location access to use this feature.";
+// Current location
+if (currentLocationButton) {
+    currentLocationButton.addEventListener("click", () => {
+        currentWeatherCard.classList.remove("hidden");
+        if (currentCityDisplay) currentCityDisplay.textContent = "Locating...";
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    fetchWeatherData({ lat: latitude, lon: longitude }, true);
+                },
+                (error) => {
+                    let msg = "Could not get your location. Please ensure location services are enabled and permissions are granted.";
+                    if (error && error.code === error.PERMISSION_DENIED) {
+                        msg = "Location access denied. Please allow location access to use this feature.";
+                    }
+                    showError(msg);
+                    currentWeatherCard.classList.add("hidden");
+                    if (currentCityDisplay) currentCityDisplay.textContent = "Location Error";
                 }
-                showError(msg);
-                // Hide card on permission error
-                currentWeatherCard.classList.add('hidden');
-                currentCityDisplay.textContent = 'Location Error';
-            }
-        );
-    } else {
-        showError("Geolocation is not supported by your browser.");
-        currentWeatherCard.classList.add('hidden');
-    }
-});
+            );
+        } else {
+            showError("Geolocation is not supported by your browser.");
+            currentWeatherCard.classList.add("hidden");
+        }
+    });
+}
 
-// --- Application Startup ---
-
-window.onload = function() {
+// --- Initialization on load ---
+window.addEventListener("load", () => {
     populateRecentCitiesDropdown();
-    // Load a default city on startup
-    fetchWeatherData('London'); 
-};
-// **END OF FILE
+    // Optionally fetch a default city
+    fetchWeatherData("London");
+});
