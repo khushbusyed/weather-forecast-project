@@ -7,37 +7,45 @@ const API_KEY = "7ad74676aa0242cc8f361803252111";
 const API_BASE_URL = "https://api.weatherapi.com/v1"; // Uses HTTPS for security
 
 // --- DOM Element Initialization ---
-const cityInput = document.getElementById('city-input');
-const searchButton = document.getElementById('search-button');
-const currentLocationButton = document.getElementById('current-location-button');
-const currentCityDisplay = document.getElementById('current-city-display');
-const dateDisplay = document.getElementById('date-display');
-const tempDisplay = document.getElementById('temperature-display');
-const weatherIconElement = document.getElementById('weather-icon');
-const weatherDescription = document.getElementById('weather-description');
-const humidityDisplay = document.getElementById('humidity-display');
-const windSpeedDisplay = document.getElementById('wind-speed-display');
-const forecastContainer = document.getElementById('forecast-container');
-const alertMessage = document.getElementById('alert-message');
-const currentWeatherCard = document.getElementById('current-weather-card');
-const currentUnitElement = document.getElementById('current-unit');
+const cityInput = document.getElementById("city-input");
+const searchButton = document.getElementById("search-button");
+const currentLocationButton = document.getElementById("current-location-button");
 
-// Toggle elements
-const celsiusToggle = document.getElementById('celsius-toggle');
-const fahrenheitToggle = document.getElementById('fahrenheit-toggle');
+const currentCityDisplay = document.getElementById("city-name-display");
+const dateDisplay = document.getElementById("date-display");
+const tempDisplay = document.getElementById("temperature-display");
+const weatherIconElement = document.getElementById("weather-icon-large");
+const weatherDescription = document.getElementById("weather-description");
 
-// Error Modal elements
-const errorBox = document.getElementById('error-box');
-const errorText = document.getElementById('error-text');
-const closeErrorBox = document.getElementById('close-error-box');
+const humidityDisplay = document.getElementById("humidity-display");
+const windSpeedDisplay = document.getElementById("wind-speed-display");
+const pressureDisplay = document.getElementById("pressure-display");
 
-// Recent Cities elements
-const recentCitiesContainer = document.getElementById('recent-cities-container');
-const recentCitiesDropdown = document.getElementById('recent-cities-dropdown');
+const forecastContainer = document.getElementById("forecast-container");
+
+const currentWeatherCard = document.getElementById("current-weather-card");
+
+// Alerts
+const extremeTempAlert = document.getElementById("extreme-temp-alert");
+const alertMessage = document.getElementById("alert-message");
+
+// Unit display
+const currentUnitElement = document.getElementById("unit-display");
+
+// Recent cities
+const recentCitiesContainer = document.getElementById("recent-cities-container");
+const recentCitiesDropdown = document.getElementById("recent-cities-select");
+
+// Error Modal
+const errorBox = document.getElementById("error-modal");
+const errorText = document.getElementById("modal-body");
+const closeErrorBox = document.getElementById("modal-close-button");
+
+// Unit toggle
+const unitToggle = document.getElementById("unit-toggle");
 
 // --- State Management ---
-// Default to metric (°C) as per standard practice, but user can toggle
-let currentUnit = 'metric'; 
+let currentUnit = "metric";
 let currentTempC = null;
 let currentTempF = null;
 let currentWindKPH = null;
@@ -45,19 +53,28 @@ let currentWindMPH = null;
 
 // --- Utility Functions ---
 
-/**
- * Displays a custom error modal instead of using alert(). (Task 6)
- * @param {string} message - The error message to display.
- */
 function showError(message) {
     errorText.textContent = message;
-    errorBox.classList.remove('hidden');
+    errorBox.classList.remove("hidden");
 }
 
-// Handles closing the error modal
-closeErrorBox.addEventListener('click', () => {
-    errorBox.classList.add('hidden');
+// Close error modal
+closeErrorBox.addEventListener("click", () => {
+    errorBox.classList.add("hidden");
 });
+
+// Unit toggle switching
+unitToggle.addEventListener("click", () => {
+    if (currentUnit === "metric") {
+        currentUnit = "imperial";
+        unitToggle.textContent = "Show in °C";
+    } else {
+        currentUnit = "metric";
+        unitToggle.textContent = "Show in °F";
+    }
+    updateTemperatureDisplay();
+});
+
 
 /**
  * Maps WeatherAPI condition text to Font Awesome icons and determines if it's rainy. (Task 4 - Icons)
