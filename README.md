@@ -46,3 +46,8 @@ Using the Dashboard
 3. Recent Cities: Use the dropdown menu to quickly re-load weather data for previously searched locations.
 
 4. Unit Change: Click the °C or °F buttons next to the temperature to switch units.
+
+## Updates
+- Improved DOM selector mapping.
+- Added custom modal handling for errors.
+- Enhanced UI for rainfall and weather condition background changes.
