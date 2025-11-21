@@ -3,10 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="styles.css">   
+    <title>Weather Forecast Dashboard</title>
+    <!-- Load Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons for graphics -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Link to Custom CSS File -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <script src="script.js"></script>   
+
+    <div id="app" class="dashboard-container">
+
+        <!-- Header -->
+        <header class="text-center py-6 mb-8 bg-blue-900 shadow-xl rounded-lg">
+            <h1 class="text-4xl font-extrabold text-white tracking-wider">Weather Dashboard</h1>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid grid gap-8 md:grid-cols-4">
+            
+            <!-- Sidebar / Search Controls (1 column on mobile, 1/4 on desktop) -->
+            <div class="p-6 bg-white shadow-xl rounded-xl md:col-span-1 space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Location Search</h2>
+                
+                <!-- City Search Input -->
+                <div class="space-y-2">
+                    <label for="city-input" class="block text-sm font-medium text-gray-700">Enter a City Name</label>
+                    <input type="text" id="city-input" placeholder="E.g., London, Tokyo, Paris" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                    <button id="search-button" class="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 shadow-md">
+                        <i data-lucide="search" class="inline-block h-5 w-5 mr-2"></i>Search
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-center space-x-2 text-gray-500">
+                    <hr class="flex-grow border-t border-gray-300">
+                    <span>or</span>
+                    <hr class="flex-grow border-t border-gray-300">
+                </div>
+
+                <!-- Current Location Button -->
+                <button id="current-location-button" class="w-full py-3 px-4 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition duration-150 shadow-md">
+                    <i data-lucide="map-pin" class="inline-block h-5 w-5 mr-2"></i>Use Current Location
+                </button>
+
+                <!-- Recently Searched Dropdown -->
+                <div id="recent-cities-container" class="space-y-2 pt-4 hidden">
+                    <label for="recent-cities-select" class="block text-sm font-medium text-gray-700">Recently Searched</label>
+                    <select id="recent-cities-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none cursor-pointer">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Toggle Button for Units -->
+                <div class="pt-4 text-center">
+                    <button id="unit-toggle" class="px-4 py-2 bg-purple-600 text-white font-medium rounded-full hover:bg-purple-700 transition duration-150 shadow-lg">
+                        <i data-lucide="thermometer" class="inline-block h-4 w-4 mr-1"></i>
+                        Show in °F
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weather Display Area (1 column on mobile, 3/4 on desktop) -->
+            <div class="md:col-span-3 space-y-8">
+                
+                <!-- Current Weather & Alerts -->
+                <div id="current-weather-card" class="p-6 shadow-2xl rounded-xl space-y-4">
+                    <div id="current-weather-content">
+                        <h2 class="text-3xl font-bold mb-1" id="city-name-display">Welcome to the Weather Dashboard!</h2>
+                        <p class="text-sm opacity-80 mb-4" id="date-display">Search for a city or use your current location to begin.</p>
+                        
+                        <!-- Main Weather Data -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between">
+                            <div class="text-4xl font-extrabold flex items-baseline">
+                                <span id="temperature-display">--</span>
+                                <span class="text-2xl ml-1" id="unit-display">°C</span>
+                            </div>
+                            <div class="text-center sm:text-right mt-4 sm:mt-0">
+                                <div id="weather-icon-large" class="w-16 h-16 mx-auto sm:mx-0">
+                                    <!-- Icon will be inserted here -->
+                                </div>
+                                <p class="text-lg font-medium" id="weather-description">--</p>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Data -->
+                        <div class="grid grid-cols-3 gap-4 mt-6 text-center border-t border-blue-400 pt-4">
+                            <div>
+                                <i data-lucide="droplets" class="weather-icon h-6 w-6 mx-auto mb-1"></i>
+                                <p class="text-xs opacity-80">Humidity</p>
+                                <p class="font-bold" id="humidity-display">--</p>
+                            </div>
+                            <div>
+                                <i data-lucide="wind" class="weather-icon h-6 w-6 mx-auto mb-1"></i>
+                                <p class="text-xs opacity-80">Wind Speed</p>
+                                <p class="font-bold" id="wind-speed-display">--</p>
+                            </div>
+                            <div>
+                                <i data-lucide="gauge" class="weather-icon h-6 w-6 mx-auto mb-1"></i>
+                                <p class="text-xs opacity-80">Pressure</p>
+                                <p class="font-bold" id="pressure-display">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Alert for Extreme Temp -->
+                    <div id="extreme-temp-alert" class="hidden p-3 bg-red-500 rounded-lg font-semibold text-center mt-4 shadow-inner">
+                        <i data-lucide="alert-triangle" class="inline-block h-5 w-5 mr-2"></i>
+                        <span id="alert-message">EXTREME HEAT WARNING! Temperature is very high.</span>
+                    </div>
+
+                    <!-- Error/Info Message Display -->
+                    <p id="info-message" class="text-yellow-300 font-medium hidden">--</p>
+                </div>
+
+                <!-- 5-Day Forecast -->
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">5-Day Forecast</h2>
+                    <div id="forecast-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <!-- Forecast cards will be injected here -->
+                        <div class="col-span-5 text-center p-8 bg-gray-200 text-gray-600 rounded-xl">
+                            <p>Forecast data will appear here after a successful search.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Error/Info Modal (Task 6: Error Handling) -->
+    <div id="error-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm transform transition-all">
+            <h3 class="text-xl font-bold text-red-600 mb-3" id="modal-title">Error</h3>
+            <p id="modal-body" class="text-gray-700 mb-4">An unknown error occurred.</p>
+            <button id="modal-close-button" class="w-full py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">Close</button>
+        </div>
+    </div>
+
+    <!-- Link to JavaScript File -->
+    <script src="script.js"></script>
+
 </body>
 </html>
